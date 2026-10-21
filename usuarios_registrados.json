@@ -1,0 +1,15 @@
+{
+    "clau_arganza": {
+        "password": {
+            "sal": "8324d367b6348227100c8835785d395f",
+            "hash": "5f2116c23afe0a8d812e61b962e441bbfae725e4e87d35bde01524ce2b2e7d2e"
+        },
+        "pregunta": "¿Cómo se llama tu perra?",
+        "respuesta": {
+            "sal": "2d5c4493fd06aa9e46cf0aea370d7884",
+            "hash": "c15e024063c76bf0bd562813128b1a6b01211261596572f7cf681c97718616fe"
+        }
+    }
+}
+
+/* usuario: clau_arganza contraseña: Holahola123! y pregunta de seguridad: ¿Cómo se llama tu perra? con respuesta: Dakota
