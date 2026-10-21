@@ -60,20 +60,20 @@ def normalizar_respuesta(texto):
 
 
 def cargar_usuarios():
-    if ARCHIVO_USUARIOS.exists():
-        with ARCHIVO_USUARIOS.open(
-            "r", encoding="utf-8"
-        ) as archivo:
-            datos = json.load(archivo)
+    if not ARCHIVO_USUARIOS.exists():
+        return {}
 
-        if not isinstance(datos, dict):
-            raise ValueError(
-                "El archivo de usuarios no tiene el formato esperado."
-            )
+    with ARCHIVO_USUARIOS.open(
+        "r", encoding="utf-8"
+    ) as archivo:
+        datos = json.load(archivo)
 
-        return datos
+    if not isinstance(datos, dict):
+        raise ValueError(
+            "El archivo de usuarios no tiene el formato esperado."
+        )
 
-    return {}
+    return datos
 
 
 def guardar_usuarios(datos):
@@ -117,8 +117,23 @@ class Login:
         self.window = ventana
         self.window.title("Acceso al programa")
         self.window.configure(bg=FONDO)
-        self.window.resizable(True, True)
 
+        # Tamaño fijo para todas las pantallas.
+        ancho = min(
+            490,
+            self.window.winfo_screenwidth() - 60
+        )
+        alto = min(
+            740,
+            self.window.winfo_screenheight() - 100
+        )
+
+        self.window.geometry(f"{ancho}x{alto}")
+
+        # Impide ampliar o reducir la ventana.
+        self.window.resizable(False, False)
+
+        self.ancho = ancho
         self.animacion = None
         self.frames_gif = []
         self.duraciones_gif = []
@@ -154,22 +169,10 @@ class Login:
         self.duraciones_gif = []
         self.imagen_meme = None
 
-    def pantalla(self, titulo, subtitulo="", ancho=490, alto=650):
+    def pantalla(self, titulo, subtitulo=""):
         self.limpiar()
 
-        # Ajusta el tamaño a la pantalla del ordenador.
-        ancho = min(
-            ancho,
-            max(350, self.window.winfo_screenwidth() - 60)
-        )
-        alto = min(
-            alto,
-            max(400, self.window.winfo_screenheight() - 100)
-        )
-
-        self.window.geometry(f"{ancho}x{alto}")
-
-        # Contenido desplazable para que no se corten los campos.
+        # Barra para desplazarse si el contenido no cabe.
         contenedor = tk.Frame(self.window, bg=FONDO)
         contenedor.pack(fill="both", expand=True)
 
@@ -182,7 +185,11 @@ class Login:
             highlightthickness=0,
             yscrollcommand=barra.set
         )
-        canvas.pack(side="left", fill="both", expand=True)
+        canvas.pack(
+            side="left",
+            fill="both",
+            expand=True
+        )
 
         barra.configure(command=canvas.yview)
 
@@ -209,38 +216,13 @@ class Login:
             )
         )
 
-        def rueda(event):
-            if event.delta:
-                paso = -1 if event.delta > 0 else 1
-                canvas.yview_scroll(paso, "units")
-
-        # Enlaza la rueda a los elementos de la pantalla actual.
-        def enlazar_rueda(widget):
-            widget.bind("<MouseWheel>", rueda, add="+")
-            widget.bind(
-                "<Button-4>",
-                lambda event: canvas.yview_scroll(-1, "units"),
-                add="+"
-            )
-            widget.bind(
-                "<Button-5>",
-                lambda event: canvas.yview_scroll(1, "units"),
-                add="+"
-            )
-
-            for hijo in widget.winfo_children():
-                enlazar_rueda(hijo)
-
-        # Se ejecuta cuando ya se han creado los campos.
-        pagina.after_idle(lambda: enlazar_rueda(contenedor))
-
         tk.Label(
             pagina,
             text=titulo,
             font=("Arial", 20, "bold"),
             bg=FONDO,
             fg=NEGRO,
-            wraplength=ancho - 60
+            wraplength=self.ancho - 70
         ).pack(pady=(25, 8))
 
         if subtitulo:
@@ -250,7 +232,7 @@ class Login:
                 font=("Arial", 11),
                 bg=FONDO,
                 fg=NEGRO,
-                wraplength=ancho - 70,
+                wraplength=self.ancho - 80,
                 justify="center"
             ).pack(pady=(0, 12))
 
@@ -259,6 +241,36 @@ class Login:
             fill="x",
             padx=25,
             pady=(0, 25)
+        )
+
+        # Desplazamiento con rueda o trackpad.
+        def rueda(event):
+            if event.delta:
+                paso = -1 if event.delta > 0 else 1
+                canvas.yview_scroll(paso, "units")
+            return "break"
+
+        def enlazar_rueda(widget):
+            widget.bind("<MouseWheel>", rueda, add="+")
+
+            widget.bind(
+                "<Button-4>",
+                lambda event: canvas.yview_scroll(-1, "units"),
+                add="+"
+            )
+
+            widget.bind(
+                "<Button-5>",
+                lambda event: canvas.yview_scroll(1, "units"),
+                add="+"
+            )
+
+            for hijo in widget.winfo_children():
+                enlazar_rueda(hijo)
+
+        # Se enlaza cuando ya están creados todos los campos.
+        pagina.after_idle(
+            lambda: enlazar_rueda(contenedor)
         )
 
         return contenido
@@ -319,7 +331,7 @@ class Login:
             ipady=6
         )
 
-        # Ojito pequeño dibujado en negro.
+        # Ojito para mostrar y ocultar la contraseña.
         ojo = tk.Canvas(
             fila,
             width=32,
@@ -401,10 +413,12 @@ class Login:
             "<Button-1>",
             lambda event: accion()
         )
+
         enlace.bind(
             "<Return>",
             lambda event: accion()
         )
+
         enlace.bind(
             "<space>",
             lambda event: accion()
@@ -479,7 +493,7 @@ class Login:
             ))
 
             imagen.thumbnail(
-                (190, 310),
+                (160, 230),
                 Image.Resampling.LANCZOS
             )
 
@@ -489,28 +503,75 @@ class Login:
                 padre,
                 image=self.imagen_meme,
                 bg=FONDO
-            ).pack(pady=(30, 12))
+            ).pack(pady=(20, 5))
 
         except OSError:
             tk.Label(
                 padre,
-                text="No se pudo abrir meme.webp",
+                text="No se pudo abrir meme.webp.",
                 font=("Arial", 10),
                 bg=FONDO,
-                fg=NEGRO,
-                wraplength=190
-            ).pack(pady=(30, 12))
+                fg=NEGRO
+            ).pack(pady=20)
 
-        tk.Label(
+    # ---------- GIF ----------
+
+    def mostrar_gif(self, padre):
+        etiqueta_gif = tk.Label(
             padre,
-            text="ALTO AHÍ\n\n"
-                 "Primero regístrese,\n"
-                 "ciudadano.",
-            font=("Arial", 12, "bold"),
             bg=FONDO,
-            fg=NEGRO,
-            justify="center"
-        ).pack()
+            fg=NEGRO
+        )
+        etiqueta_gif.pack(pady=25)
+
+        try:
+            with Image.open(ARCHIVO_GIF) as gif:
+                for frame in ImageSequence.Iterator(gif):
+                    duracion = frame.info.get(
+                        "duration", 100
+                    )
+
+                    imagen = frame.convert("RGBA")
+
+                    imagen.thumbnail(
+                        (330, 300),
+                        Image.Resampling.LANCZOS
+                    )
+
+                    self.frames_gif.append(
+                        ImageTk.PhotoImage(imagen)
+                    )
+
+                    self.duraciones_gif.append(
+                        max(20, int(duracion or 100))
+                    )
+
+        except (OSError, ValueError):
+            self.frames_gif = []
+            self.duraciones_gif = []
+
+            etiqueta_gif.configure(
+                text="No se pudo abrir saludo.gif.",
+                font=("Arial", 12)
+            )
+
+        def reproducir(indice=0):
+            etiqueta_gif.configure(
+                image=self.frames_gif[indice]
+            )
+
+            siguiente = (
+                indice + 1
+            ) % len(self.frames_gif)
+
+            self.animacion = self.window.after(
+                self.duraciones_gif[indice],
+                reproducir,
+                siguiente
+            )
+
+        if self.frames_gif:
+            reproducir()
 
     # ---------- USUARIOS ANTIGUOS ----------
 
@@ -529,7 +590,10 @@ class Login:
             "Introduce tu usuario y contraseña."
         )
 
-        self.usuario = self.campo(marco, "Usuario")
+        self.usuario = self.campo(
+            marco,
+            "Usuario"
+        )
 
         self.password = self.campo_password(
             marco,
@@ -560,6 +624,9 @@ class Login:
             "He olvidado mi contraseña",
             self.mostrar_recuperacion
         )
+
+        # Aparece al abrir el programa, debajo de los enlaces.
+        self.mostrar_meme(marco)
 
     def iniciar_sesion(self):
         nombre = self.usuario.get().strip()
@@ -599,6 +666,9 @@ class Login:
             f"Has iniciado sesión como {nombre}."
         )
 
+        # Aparece al introducir correctamente las credenciales.
+        self.mostrar_gif(marco)
+
         self.boton(
             marco,
             "Cerrar sesión",
@@ -608,30 +678,7 @@ class Login:
     # ---------- REGISTRO ----------
 
     def mostrar_registro(self):
-        contenido = self.pantalla(
-            "CREAR CUENTA",
-            ancho=760,
-            alto=740
-        )
-
-        # Formulario a la izquierda.
-        marco = tk.Frame(contenido, bg=FONDO)
-        marco.pack(
-            side="left",
-            fill="x",
-            expand=True,
-            anchor="n"
-        )
-
-        # Meme a la derecha.
-        lateral = tk.Frame(contenido, bg=FONDO)
-        lateral.pack(
-            side="right",
-            padx=(25, 0),
-            anchor="n"
-        )
-
-        self.mostrar_meme(lateral)
+        marco = self.pantalla("CREAR CUENTA")
 
         usuario = self.campo(
             marco,
@@ -740,80 +787,11 @@ class Login:
 
         usuario.focus_set()
 
-    # ---------- REGISTRO COMPLETADO Y GIF ----------
-
     def mostrar_registro_correcto(self, nombre):
         marco = self.pantalla(
-            "¡YA ERES DE LOS NUESTROS!",
-            f"Tu cuenta se ha creado correctamente, {nombre}.",
-            alto=650
+            "¡CUENTA CREADA!",
+            f"Tu cuenta se ha creado correctamente, {nombre}."
         )
-
-        etiqueta_gif = tk.Label(
-            marco,
-            bg=FONDO,
-            fg=NEGRO
-        )
-        etiqueta_gif.pack(pady=25)
-
-        try:
-            with Image.open(ARCHIVO_GIF) as gif:
-                for frame in ImageSequence.Iterator(gif):
-                    duracion = frame.info.get(
-                        "duration", 100
-                    )
-
-                    imagen = frame.convert("RGBA")
-
-                    imagen.thumbnail(
-                        (330, 300),
-                        Image.Resampling.LANCZOS
-                    )
-
-                    self.frames_gif.append(
-                        ImageTk.PhotoImage(imagen)
-                    )
-
-                    self.duraciones_gif.append(
-                        max(20, int(duracion or 100))
-                    )
-
-        except (OSError, ValueError):
-            self.frames_gif = []
-            self.duraciones_gif = []
-
-            etiqueta_gif.configure(
-                text="Tu cuenta está lista.\n"
-                     "No se pudo abrir saludo.gif.",
-                font=("Arial", 13),
-                wraplength=350
-            )
-
-        def reproducir(indice=0):
-            etiqueta_gif.configure(
-                image=self.frames_gif[indice]
-            )
-
-            siguiente = (
-                indice + 1
-            ) % len(self.frames_gif)
-
-            self.animacion = self.window.after(
-                self.duraciones_gif[indice],
-                reproducir,
-                siguiente
-            )
-
-        if self.frames_gif:
-            reproducir()
-
-        tk.Label(
-            marco,
-            text="El comité de bienvenida te saluda.",
-            font=("Arial", 12),
-            bg=FONDO,
-            fg=NEGRO
-        ).pack(pady=10)
 
         self.boton(
             marco,
