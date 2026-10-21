@@ -6,3 +6,5 @@ users = [
     { "nickname": "jorgeuser", "birthday" : "2000-11-15", "passw" : "jorgepassw", "blocked" : True },
     { "nickname": "alejauser", "birthday" : "2015-11-15", "passw" : "alejopassw", "blocked" : True }
 ]
+
+# usuario: clau_arganza contraseña: Holahola123! y pregunta de seguridad: ¿Cómo se llama tu perra? con respuesta: Dakota
